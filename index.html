@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a3320">
+<title>STL Forestry Priority Compiler</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --forest:#1a3320;--moss:#2d5a3d;--leaf:#4a8c5c;--lime:#7ec850;
+  --pale:#c8e6c9;--bark:#8b6f47;--soil:#3d2b1f;--cream:#f5f0e8;
+  --warn:#e8a020;--danger:#c0392b;--sky:#e8f5e9;
+  --card:rgba(255,255,255,0.97);--shadow:0 4px 24px rgba(26,51,32,0.18);--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Space Mono',monospace;background:var(--forest);min-height:100dvh;color:var(--forest);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(126,200,80,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(45,90,61,0.3) 0%,transparent 60%),linear-gradient(160deg,#1a3320 0%,#0f2218 100%);z-index:0;pointer-events:none}
+#app{position:relative;z-index:1;max-width:980px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:0 0 40px}
+
+/* HEADER */
+header{padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(126,200,80,0.2)}
+.logo-block h1{font-family:'Syne',sans-serif;font-weight:800;font-size:1.25rem;color:var(--lime);letter-spacing:-0.5px;line-height:1}
+.logo-block p{font-size:0.6rem;color:rgba(200,230,201,0.6);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+
+/* CONTENT */
+.content{flex:1;padding:16px 18px;overflow-y:auto}
+
+/* CARD */
+.card{background:var(--card);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card-title{font-family:'Syne',sans-serif;font-weight:800;font-size:0.8rem;color:var(--forest);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card-title .badge{background:var(--lime);color:var(--forest);padding:2px 9px;border-radius:20px;font-size:0.68rem}
+.card-sub{font-size:0.6rem;color:#888;font-family:'Space Mono',monospace;margin-bottom:10px;line-height:1.7}
+
+/* FORM */
+.field-group{margin-bottom:10px}
+.field-label{font-family:'Syne',sans-serif;font-weight:700;font-size:0.65rem;color:#555;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px}
+.field-sub{font-size:0.57rem;color:#999;font-family:'Space Mono',monospace;margin-bottom:5px;line-height:1.6}
+.input-field{width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:9px;font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--forest);background:#fafafa;outline:none;transition:border-color 0.2s}
+.input-field:focus{border-color:var(--leaf);background:white}
+.btn-primary{padding:11px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--moss),var(--leaf));color:white;font-family:'Syne',sans-serif;font-weight:800;font-size:0.8rem;letter-spacing:1px;cursor:pointer;transition:all 0.2s}
+.btn-primary:active{transform:scale(0.98);opacity:0.9}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-secondary{padding:9px 16px;border:1.5px solid var(--leaf);border-radius:9px;background:var(--sky);color:var(--moss);font-family:'Syne',sans-serif;font-weight:700;font-size:0.72rem;cursor:pointer;transition:all 0.15s}
+.btn-secondary:hover{background:#d0f0d0}
+.btn-tiny{padding:5px 10px;font-size:0.6rem;border:1.5px solid #ddd;border-radius:7px;background:#f5f5f5;color:#555;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer}
+.btn-tiny:hover{background:#eef;border-color:var(--leaf)}
+
+/* SOURCES PANEL */
+.source-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e5e5;background:#fafaf8;margin-bottom:7px;transition:all 0.15s}
+.source-row.on{border-color:var(--leaf);background:#f0faf0}
+.source-row.live{border-left:4px solid var(--leaf)}
+.source-row.upload{border-left:4px solid var(--bark)}
+.source-toggle{width:38px;height:22px;background:#ccc;border-radius:11px;position:relative;cursor:pointer;flex-shrink:0;transition:background 0.2s}
+.source-toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.source-row.on .source-toggle{background:var(--leaf)}
+.source-row.on .source-toggle::after{transform:translateX(16px)}
+.source-info{flex:1;min-width:0}
+.source-name{font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;color:var(--forest);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.source-name .tag{font-size:0.52rem;padding:1px 6px;border-radius:8px;letter-spacing:0.5px;font-weight:700}
+.tag-live{background:#d4edda;color:#155724}
+.tag-upload{background:#f5e8d4;color:#7a5000}
+.tag-dev{background:#e2e3e5;color:#555}
+.source-desc{font-size:0.58rem;color:#888;font-family:'Space Mono',monospace;margin-top:2px;line-height:1.5;word-break:break-word}
+.source-status{font-size:0.55rem;font-family:'Space Mono',monospace;margin-top:3px}
+.status-pending{color:#999}
+.status-loading{color:#7a5000}
+.status-ok{color:#1a5c34}
+.status-err{color:#c0392b}
+.source-actions{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.source-count{font-family:'Syne',sans-serif;font-weight:800;font-size:0.85rem;color:var(--moss);line-height:1}
+.source-count-sub{font-size:0.5rem;font-family:'Space Mono',monospace;color:#aaa;letter-spacing:0.5px}
+
+/* SCORING GRID */
+.score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:10px}
+.score-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;cursor:pointer;border:1.5px solid transparent;transition:all 0.15s}
+.score-item:hover{border-color:#ddd}
+.score-item input[type=checkbox]{width:15px;height:15px;flex-shrink:0;cursor:pointer;accent-color:var(--forest)}
+.score-item-text{flex:1}
+.score-item-label{font-family:'Syne',sans-serif;font-weight:700;font-size:0.62rem;color:var(--forest);line-height:1.3}
+.score-item-pts{font-size:0.56rem;font-family:'Space Mono',monospace;color:#888;margin-top:1px}
+.si-red{background:#fef0f0;border-color:#f5c6c6!important}.si-red .score-item-label{color:#7a1515}
+.si-amber{background:#fff8ec;border-color:#fde3a7!important}.si-amber .score-item-label{color:#7a5000}
+.si-blue{background:#f0f8ff;border-color:#b3d7f5!important}.si-blue .score-item-label{color:#1a4a6e}
+
+/* WARD GRID */
+.ward-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:8px}
+.ward-btn{padding:8px 2px;border-radius:8px;border:1.5px solid #ddd;background:#f9f9f9;color:#777;font-family:'Syne',sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;transition:all 0.15s}
+.ward-btn.on{background:var(--forest);color:var(--lime);border-color:var(--leaf)}
+.ward-toggle-row{display:flex;gap:6px;margin-bottom:10px}
+.ward-toggle-row button{flex:1;padding:7px;border:1.5px solid #ddd;border-radius:8px;background:#f5f5f5;color:#666;font-family:'Syne',sans-serif;font-weight:700;font-size:0.62rem;cursor:pointer}
+.ward-toggle-row button.active{background:var(--sky);border-color:var(--leaf);color:var(--moss)}
+
+/* STATUS */
+#status-bar{display:none;padding:10px 14px;border-radius:10px;font-size:0.62rem;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:0.5px;margin-bottom:12px;line-height:1.7}
+.status-loading-bar{background:#fff8ec;color:#7a5000;border:1px solid #fde3a7}
+.status-ok-bar{background:#e8f5e9;color:#1a5c34;border:1px solid #c8e6c9}
+.status-err-bar{background:#fde8e8;color:#c0392b;border:1px solid #f5c6c6}
+
+/* RESULTS */
+#results-wrap{display:none}
+.results-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.results-toolbar .result-count{font-family:'Syne',sans-serif;font-weight:800;font-size:0.85rem;color:var(--lime)}
+.results-toolbar .result-sub{font-size:0.58rem;color:rgba(200,230,201,0.6);font-family:'Space Mono',monospace}
+.results-toolbar-btns{display:flex;gap:7px;margin-left:auto;flex-wrap:wrap}
+
+.filter-bar{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-bar label{font-family:'Syne',sans-serif;font-weight:700;font-size:0.6rem;color:#555;letter-spacing:0.5px}
+.filter-bar select, .filter-bar input[type=number]{padding:5px 8px;border:1.5px solid #ddd;border-radius:7px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--forest);background:#fafafa;outline:none}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--leaf)}
+
+.results-table-wrap{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--forest)}
+thead th{padding:9px 10px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.6rem;color:var(--lime);letter-spacing:1px;text-transform:uppercase;text-align:left;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{background:var(--moss)}
+thead th .sort-arrow{font-size:0.5rem;margin-left:3px;opacity:0.5}
+tbody tr{border-bottom:1px solid #f0f0f0;transition:background 0.1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f5faf5}
+tbody td{padding:8px 10px;font-size:0.63rem;font-family:'Space Mono',monospace;color:var(--forest);vertical-align:middle}
+.score-badge{display:inline-block;background:var(--forest);color:var(--lime);font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;padding:2px 9px;border-radius:20px;min-width:30px;text-align:center}
+.score-badge.high{background:#c0392b;color:white}
+.score-badge.med{background:#e8a020;color:white}
+.flag-row{display:flex;align-items:center;flex-wrap:wrap;gap:3px}
+.flag-chip{font-family:'Syne',sans-serif;font-weight:700;font-size:0.5rem;padding:1px 5px;border-radius:10px;letter-spacing:0.3px}
+.chip-tax{background:#fde8e8;color:#c0392b}
+.chip-vacant{background:#fde8e8;color:#7a1515}
+.chip-cut{background:#fff3cd;color:#7a5000}
+.chip-multi{background:#e8f4fd;color:#1a5276}
+.chip-complain{background:#f0f8ff;color:#1a4a6e}
+.chip-lra{background:#e8d4fd;color:#5a2a8a}
+.addr-cell{font-family:'Syne',sans-serif;font-weight:700;font-size:0.65rem;color:var(--forest);line-height:1.3}
+.addr-cell-sub{font-family:'Space Mono',monospace;font-size:0.55rem;color:#888;margin-top:1px}
+.owner-cell{font-size:0.58rem;color:#555;line-height:1.4;max-width:160px}
+.no-data{font-style:italic;color:#999;font-size:0.55rem}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-top:1px solid #f0f0f0;background:var(--card);border-radius:0 0 var(--radius) var(--radius)}
+.page-btn{padding:6px 11px;border:1.5px solid #ddd;border-radius:7px;background:#f5f5f5;color:#555;font-family:'Syne',sans-serif;font-weight:700;font-size:0.65rem;cursor:pointer;transition:all 0.15s}
+.page-btn:hover:not(:disabled){background:var(--sky);border-color:var(--leaf);color:var(--moss)}
+.page-btn:disabled{opacity:0.35;cursor:default}
+.page-btn.current{background:var(--forest);color:var(--lime);border-color:var(--leaf)}
+.page-info{font-family:'Space Mono',monospace;font-size:0.62rem;color:#888}
+
+/* CLUSTER PANEL */
+#cluster-wrap{display:none;margin-bottom:12px}
+.cluster-title{font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;color:var(--lime);letter-spacing:1px;margin-bottom:7px}
+.cluster-card{background:var(--card);border-radius:10px;padding:10px 13px;margin-bottom:7px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:10px}
+.cluster-owner{flex:1}
+.cluster-owner-name{font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;color:var(--forest)}
+.cluster-owner-sub{font-size:0.57rem;color:#888;font-family:'Space Mono',monospace;margin-top:2px}
+.cluster-count{background:var(--danger);color:white;border-radius:20px;padding:3px 10px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.75rem;flex-shrink:0}
+.cluster-score{background:var(--forest);color:var(--lime);border-radius:20px;padding:3px 10px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;margin-left:4px}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--forest);color:var(--lime);font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem;padding:10px 18px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.3s;z-index:9999;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1}
+
+/* DROPZONE */
+.dropzone{border:2px dashed #c8d4c8;border-radius:10px;padding:14px;text-align:center;font-family:'Space Mono',monospace;font-size:0.62rem;color:#777;cursor:pointer;transition:all 0.15s;background:#fafafa}
+.dropzone:hover, .dropzone.drag-over{border-color:var(--leaf);background:#f0faf0;color:var(--moss)}
+.dropzone strong{font-family:'Syne',sans-serif;font-weight:700;display:block;margin-bottom:3px;color:var(--forest);font-size:0.7rem}
+
+/* SECTION DETAILS */
+.collapse-section{margin-top:8px}
+.collapse-header{cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.6rem;color:#555;letter-spacing:0.5px;text-transform:uppercase;padding:5px 0;user-select:none}
+.collapse-header::before{content:'▶';font-size:0.55rem;transition:transform 0.15s;color:#999}
+.collapse-section.open .collapse-header::before{transform:rotate(90deg)}
+.collapse-body{display:none;padding-top:6px}
+.collapse-section.open .collapse-body{display:block}
+
+@media(max-width:600px){
+  .score-grid{grid-template-columns:1fr 1fr}
+  thead th:nth-child(5),thead th:nth-child(6),tbody td:nth-child(5),tbody td:nth-child(6){display:none}
+  .source-row{flex-wrap:wrap}
+  .source-actions{width:100%;flex-direction:row;justify-content:flex-end;border-top:1px dashed #e5e5e5;padding-top:6px;margin-top:4px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header>
+  <div class="logo-block">
+    <h1>🌿 Priority Compiler</h1>
+    <p>STL Forestry Division — Live Data + Upload</p>
+  </div>
+</header>
+
+<div class="content">
+
+<!-- STEP 1: PROXY URL (one-time setup) -->
+<div class="card">
+  <div class="card-title">⚙ Step 1 — Proxy Setup <span class="badge" id="proxy-status-badge">not set</span></div>
+  <div class="card-sub">
+    The proxy is your Cloudflare Worker. It hides your CSB API key and bypasses CORS for city endpoints.
+    Set this once — it's saved to your browser.
+  </div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap">
+    <input type="text" class="input-field" id="proxy-url-input"
+      placeholder="https://stl-forestry-proxy.YOUR-NAME.workers.dev"
+      style="flex:1;min-width:240px">
+    <button class="btn-secondary" onclick="saveProxyUrl()">💾 SAVE</button>
+    <button class="btn-secondary" onclick="testProxyUrl()">🔍 TEST</button>
+  </div>
+  <div id="proxy-status" style="font-size:0.58rem;font-family:'Syne',sans-serif;font-weight:700;margin-top:6px"></div>
+</div>
+
+<!-- STEP 2: DATA SOURCES -->
+<div class="card">
+  <div class="card-title">📡 Step 2 — Data Sources</div>
+  <div class="card-sub">Toggle which sources to pull from. Live ones fetch via proxy when you generate.<br>
+    Uploads merge with live data on address match.</div>
+
+  <div id="sources-list">
+    <!-- populated by JS -->
+  </div>
+
+  <div class="collapse-section" id="upload-section">
+    <div class="collapse-header" onclick="document.getElementById('upload-section').classList.toggle('open')">
+      Upload a parcel/owner file (CSV or XLSX)
+    </div>
+    <div class="collapse-body">
+      <div class="card-sub" style="margin-bottom:6px">
+        Use this for tax delinquency, owner names, multi-parcel ownership, or your forestry cut list — anything not in the live APIs. Address column required for merge. XLSX support requires SheetJS (loaded automatically below).
+      </div>
+      <div class="dropzone" id="dropzone">
+        <strong>📁 Drop a file here, or click to browse</strong>
+        Accepts .csv, .xlsx, .xls — first sheet only
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none">
+
+      <div id="upload-status" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:0.6rem;font-family:'Space Mono',monospace"></div>
+
+      <!-- Column mapping for uploaded file -->
+      <div id="upload-colmap" style="display:none;margin-top:10px">
+        <div class="field-label" style="margin-bottom:6px">Column mapping (auto-detected — adjust if needed)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px" id="upload-colmap-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 3: WARDS -->
+<div class="card">
+  <div class="card-title">🗺 Step 3 — Filter by Ward</div>
+  <div class="ward-grid" id="ward-grid"></div>
+  <div class="ward-toggle-row">
+    <button onclick="wardSelectAll()">ALL WARDS</button>
+    <button onclick="wardClearAll()">CLEAR</button>
+  </div>
+  <div class="card-sub" style="margin-bottom:0">No wards selected = full city.</div>
+</div>
+
+<!-- STEP 4: SCORING -->
+<div class="card">
+  <div class="card-title">⚡ Step 4 — Scoring Weights</div>
+  <div class="card-sub">Checked flags add points. Uncheck any rule you don't want to score.</div>
+  <div class="score-grid">
+    <label class="score-item si-red">
+      <input type="checkbox" id="sc-taxdelinq" checked>
+      <div class="score-item-text">
+        <div class="score-item-label">TAX DELINQUENT</div>
+        <div class="score-item-pts">+3 pts · uploaded data</div>
+      </div>
+    </label>
+    <label class="score-item si-red">
+      <input type="checkbox" id="sc-vacant" checked>
+      <div class="score-item-text">
+        <div class="score-item-label">VACANT BUILDING</div>
+        <div class="score-item-pts">+2 pts · live VBD or upload</div>
+      </div>
+    </label>
+    <label class="score-item si-amber">
+      <input type="checkbox" id="sc-cutlot" checked>
+      <div class="score-item-text">
+        <div class="score-item-label">CITY CUT LOT</div>
+        <div class="score-item-pts">+2 pts · uploaded data</div>
+      </div>
+    </label>
+    <label class="score-item si-amber">
+      <input type="checkbox" id="sc-complaints" checked>
+      <div class="score-item-text">
+        <div class="score-item-label">311 COMPLAINTS</div>
+        <div class="score-item-pts">+1 each (cap 5) · live CSB</div>
+      </div>
+    </label>
+    <label class="score-item si-blue">
+      <input type="checkbox" id="sc-multiparcel" checked>
+      <div class="score-item-text">
+        <div class="score-item-label">MULTI-PARCEL OWNER</div>
+        <div class="score-item-pts">+2 per extra · uploaded data</div>
+      </div>
+    </label>
+    <label class="score-item si-blue">
+      <input type="checkbox" id="sc-outofcity" checked>
+      <div class="score-item-text">
+        <div class="score-item-label">OUT-OF-CITY OWNER</div>
+        <div class="score-item-pts">+1 pt · uploaded data</div>
+      </div>
+    </label>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:4px">
+    <div class="field-group" style="margin:0;flex:1;min-width:160px">
+      <div class="field-label">311 lookback (days)</div>
+      <input type="number" class="input-field" id="csb-lookback" value="90" min="7" max="365" style="width:100px">
+    </div>
+    <div class="field-group" style="margin:0;flex:1;min-width:160px">
+      <div class="field-label">Min score threshold</div>
+      <input type="number" class="input-field" id="min-score" value="3" min="0" max="20" style="width:100px">
+    </div>
+  </div>
+</div>
+
+<!-- GENERATE -->
+<div class="card">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn-primary" id="btn-generate" onclick="runGenerate()" style="flex:1;min-width:200px">⚡ GENERATE PRIORITY LIST</button>
+    <button class="btn-secondary" id="btn-clear" onclick="clearResults()" style="display:none">✕ CLEAR</button>
+  </div>
+  <div id="status-bar" class="status-loading-bar"></div>
+</div>
+
+<!-- CLUSTER VIEW -->
+<div id="cluster-wrap">
+  <div class="cluster-title">⚡ HIGH-VALUE OWNER CLUSTERS</div>
+  <div id="cluster-list"></div>
+</div>
+
+<!-- RESULTS -->
+<div id="results-wrap">
+  <div class="results-toolbar">
+    <div>
+      <div class="result-count" id="result-count-label">0 results</div>
+      <div class="result-sub" id="result-sub-label">ready to export</div>
+    </div>
+    <div class="results-toolbar-btns">
+      <button class="btn-secondary" onclick="exportCsv()">⬇ EXPORT CSV</button>
+      <button class="btn-secondary" onclick="exportJsonForRouter()">📤 EXPORT FOR ROUTER</button>
+      <button class="btn-secondary" onclick="toggleClusters()">🏘 CLUSTERS</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <label>SORT</label>
+    <select id="sort-col" onchange="applySort()">
+      <option value="score">Score ↓</option>
+      <option value="address">Address</option>
+      <option value="ward">Ward</option>
+      <option value="owner">Owner</option>
+    </select>
+    <label style="margin-left:8px">MIN SCORE</label>
+    <input type="number" id="filter-score" value="0" min="0" max="30" style="width:60px" onchange="applyFilter()">
+    <label style="margin-left:8px">WARD</label>
+    <select id="filter-ward" onchange="applyFilter()">
+      <option value="">All</option>
+    </select>
+    <label style="margin-left:8px">SEARCH</label>
+    <input type="text" class="input-field" id="filter-search" placeholder="Address or owner…" style="width:180px;padding:5px 8px;font-size:0.65rem" oninput="applyFilter()">
+  </div>
+
+  <div class="results-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('rank')"># <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('score')">Score <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('address')">Address <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('ward')">Ward <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('owner')">Owner <span class="sort-arrow">↕</span></th>
+          <th>Flags</th>
+        </tr>
+      </thead>
+      <tbody id="result-tbody"></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+</div><!-- .content -->
+</div><!-- #app -->
+
+<div id="toast"></div>
+
+<!-- SheetJS for XLSX support, loaded only when needed -->
+<script>
+'use strict';
+
+// ============================================================
+// CONFIG
+// ============================================================
+const SOURCES = [
+  {
+    id:    'csb',
+    name:  '311 Complaints (CSB Open311)',
+    desc:  'Live forestry-related service requests from the city.',
+    type:  'live',
+    enabled: true,
+    proxyPath: '/csb/requests.json',
+    lastFetch: null,
+    rowCount: 0,
+  },
+  {
+    id:    'vbd',
+    name:  'Vacant Building Database',
+    desc:  'Live list of all logged vacant buildings.',
+    type:  'live',
+    enabled: true,
+    proxyPath: '/vbd/all',
+    lastFetch: null,
+    rowCount: 0,
+  },
+  // Disabled-by-default future sources (kept here to make adding them easy)
+  {
+    id:    'lra',
+    name:  'LRA Owned Properties',
+    desc:  'Coming soon — city-owned vacant land/buildings.',
+    type:  'live',
+    enabled: false,
+    disabled: true,
+    proxyPath: null,
+  },
+  {
+    id:    'tree-inventory',
+    name:  'City Tree Inventory',
+    desc:  'Coming soon — confirms forestry has standing at the address.',
+    type:  'live',
+    enabled: false,
+    disabled: true,
+    proxyPath: null,
+  },
+];
+
+// CSB service codes likely relevant to forestry. Adjust here if needed.
+// These are the canonical "Tree-related" and "Weeds/grass" codes used by STL CSB.
+// We'll fetch ALL recent requests, then count by address, since we don't know
+// the exact code list without testing — but if you want to filter, set this.
+const CSB_RELEVANT_KEYWORDS = ['tree','weed','grass','dead','limb','vacant','dump','overgrown','brush'];
+
+// Flags & their points
+const SCORING = {
+  tax:        { points: 3, chip: 'chip-tax',     label: 'TAX DELQ' },
+  vacant:     { points: 2, chip: 'chip-vacant',  label: 'VACANT' },
+  cut:        { points: 2, chip: 'chip-cut',     label: 'CUT LOT' },
+  outofcity:  { points: 1, chip: 'chip-complain',label: 'OUT-OF-CITY' },
+  // multi & complain are dynamic (per-count)
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let proxyUrl = '';
+let uploadedRows = [];
+let uploadedColMap = {};
+const UPLOAD_FIELDS = ['address','ward','owner_name','owner_city','owner_state','tax_delinquent','vacant_building','city_cut_lot','parcel_count'];
+
+let scoredParcels = [];
+let displayParcels = [];
+let selectedWards = new Set();
+let currentSort = { col: 'score', asc: false };
+let currentPage = 1;
+const PAGE_SIZE = 50;
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function () {
+  proxyUrl = localStorage.getItem('pri-compiler-proxy-url') || '';
+  if (proxyUrl) {
+    document.getElementById('proxy-url-input').value = proxyUrl;
+    document.getElementById('proxy-status-badge').textContent = 'saved';
+  }
+
+  // Restore saved column map for uploads
+  const savedMap = localStorage.getItem('pri-compiler-upload-colmap');
+  if (savedMap) { try { uploadedColMap = JSON.parse(savedMap); } catch(e) {} }
+
+  // Restore saved source toggle states
+  const savedSources = localStorage.getItem('pri-compiler-sources');
+  if (savedSources) {
+    try {
+      const saved = JSON.parse(savedSources);
+      SOURCES.forEach(s => { if (saved[s.id] !== undefined && !s.disabled) s.enabled = saved[s.id]; });
+    } catch(e) {}
+  }
+
+  buildSourcesList();
+  buildWardGrid();
+  setupDropzone();
+};
+
+// ============================================================
+// PROXY URL MANAGEMENT
+// ============================================================
+function saveProxyUrl() {
+  let url = document.getElementById('proxy-url-input').value.trim();
+  if (!url) { showProxyStatus('❌ Enter a proxy URL', 'err'); return; }
+  // normalize: strip trailing slash
+  url = url.replace(/\/+$/, '');
+  proxyUrl = url;
+  localStorage.setItem('pri-compiler-proxy-url', proxyUrl);
+  document.getElementById('proxy-status-badge').textContent = 'saved';
+  showProxyStatus('✅ Saved — now click TEST', 'ok');
+  showToast('Proxy URL saved');
+}
+
+async function testProxyUrl() {
+  let url = document.getElementById('proxy-url-input').value.trim().replace(/\/+$/, '');
+  if (!url) { showProxyStatus('❌ Enter a proxy URL first', 'err'); return; }
+  proxyUrl = url;
+
+  showProxyStatus('⏳ Testing proxy…', 'loading');
+  try {
+    const r = await fetch(url + '/health', { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (!data.ok) throw new Error('Unexpected response');
+    document.getElementById('proxy-status-badge').textContent = 'connected';
+    showProxyStatus(`✅ Proxy reachable · server time ${new Date(data.time).toLocaleTimeString()}`, 'ok');
+    localStorage.setItem('pri-compiler-proxy-url', proxyUrl);
+    showToast('Proxy connected ✓');
+  } catch(e) {
+    showProxyStatus('❌ ' + e.message + ' — check the URL or that the worker is deployed', 'err');
+    showToast('Proxy test failed');
+  }
+}
+
+function showProxyStatus(msg, kind) {
+  const el = document.getElementById('proxy-status');
+  el.textContent = msg;
+  el.style.color = kind === 'ok' ? '#1a5c34' : kind === 'err' ? '#c0392b' : '#7a5000';
+}
+
+// ============================================================
+// SOURCES LIST UI
+// ============================================================
+function buildSourcesList() {
+  const list = document.getElementById('sources-list');
+  list.innerHTML = SOURCES.map(s => {
+    const tag = s.disabled
+      ? '<span class="tag tag-dev">DEV</span>'
+      : s.type === 'live'
+        ? '<span class="tag tag-live">LIVE</span>'
+        : '<span class="tag tag-upload">UPLOAD</span>';
+    const stateClass = s.enabled ? 'on' : '';
+    const disabledStyle = s.disabled ? 'opacity:0.5;pointer-events:none' : '';
+    return `<div class="source-row live ${stateClass}" id="src-${s.id}" style="${disabledStyle}">
+      <div class="source-toggle" onclick="toggleSource('${s.id}')"></div>
+      <div class="source-info">
+        <div class="source-name">${esc(s.name)} ${tag}</div>
+        <div class="source-desc">${esc(s.desc)}</div>
+        <div class="source-status status-pending" id="src-status-${s.id}">— not yet fetched —</div>
+      </div>
+      <div class="source-actions">
+        <div class="source-count" id="src-count-${s.id}">—</div>
+        <div class="source-count-sub">rows</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSource(id) {
+  const s = SOURCES.find(x => x.id === id);
+  if (!s || s.disabled) return;
+  s.enabled = !s.enabled;
+  document.getElementById('src-' + id).classList.toggle('on', s.enabled);
+  // Persist
+  const state = {};
+  SOURCES.forEach(x => state[x.id] = x.enabled);
+  localStorage.setItem('pri-compiler-sources', JSON.stringify(state));
+}
+
+function updateSourceStatus(id, text, kind, count) {
+  const statusEl = document.getElementById('src-status-' + id);
+  if (statusEl) {
+    statusEl.textContent = text;
+    statusEl.className = 'source-status status-' + (kind || 'pending');
+  }
+  if (count !== undefined) {
+    const countEl = document.getElementById('src-count-' + id);
+    if (countEl) countEl.textContent = count.toLocaleString();
+    const s = SOURCES.find(x => x.id === id);
+    if (s) s.rowCount = count;
+  }
+}
+
+// ============================================================
+// WARD GRID
+// ============================================================
+function buildWardGrid() {
+  const grid = document.getElementById('ward-grid');
+  grid.innerHTML = '';
+  for (let w = 1; w <= 28; w++) {
+    const btn = document.createElement('button');
+    btn.className = 'ward-btn' + (selectedWards.has(w) ? ' on' : '');
+    btn.textContent = w;
+    btn.id = 'wb-' + w;
+    btn.onclick = () => toggleWard(w);
+    grid.appendChild(btn);
+  }
+}
+function toggleWard(w) {
+  if (selectedWards.has(w)) selectedWards.delete(w);
+  else selectedWards.add(w);
+  document.getElementById('wb-' + w).classList.toggle('on', selectedWards.has(w));
+}
+function wardSelectAll() {
+  selectedWards.clear();
+  for (let w = 1; w <= 28; w++) selectedWards.add(w);
+  document.querySelectorAll('.ward-btn').forEach(b => b.classList.add('on'));
+}
+function wardClearAll() {
+  selectedWards.clear();
+  document.querySelectorAll('.ward-btn').forEach(b => b.classList.remove('on'));
+}
+
+// ============================================================
+// FILE UPLOAD (CSV + XLSX)
+// ============================================================
+function setupDropzone() {
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('file-input');
+
+  dz.addEventListener('click', () => input.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', e => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+}
+
+async function handleFile(file) {
+  const status = document.getElementById('upload-status');
+  status.style.display = 'block';
+  status.style.background = '#fff8ec';
+  status.style.color = '#7a5000';
+  status.textContent = `⏳ Reading ${file.name} (${(file.size/1024).toFixed(0)} KB)…`;
+
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  try {
+    let rows;
+    if (ext === 'csv') {
+      const text = await file.text();
+      rows = parseCsv(text);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      await ensureSheetJS();
+      const buf = await file.arrayBuffer();
+      const wb = window.XLSX.read(buf, { type: 'array' });
+      const firstSheet = wb.Sheets[wb.SheetNames[0]];
+      rows = window.XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false });
+    } else {
+      throw new Error('Unsupported file type — use .csv, .xlsx, or .xls');
+    }
+
+    if (!rows.length) throw new Error('File appears to be empty');
+
+    uploadedRows = rows;
+    const cols = Object.keys(rows[0]);
+    autoDetectUploadCols(cols);
+    buildUploadColMapUI(cols);
+
+    status.style.background = '#e8f5e9';
+    status.style.color = '#1a5c34';
+    status.innerHTML = `✅ Loaded <strong>${rows.length.toLocaleString()}</strong> rows from <strong>${esc(file.name)}</strong> · ${cols.length} columns`;
+    showToast(`Loaded ${rows.length.toLocaleString()} rows`);
+  } catch(e) {
+    uploadedRows = [];
+    status.style.background = '#fde8e8';
+    status.style.color = '#c0392b';
+    status.textContent = '❌ ' + e.message;
+    showToast('Upload failed: ' + e.message);
+  }
+}
+
+async function ensureSheetJS() {
+  if (window.XLSX) return;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Could not load XLSX library — check network'));
+    document.head.appendChild(s);
+  });
+}
+
+const UPLOAD_ALIASES = {
+  address:         ['address','full_address','parcel_address','street_address','situs_address','addr','property_address'],
+  ward:            ['ward','ward_number','aldermanic_ward','ward_no'],
+  owner_name:      ['owner_name','owner','ownername','taxpayer_name','taxpayername','property_owner'],
+  owner_city:      ['owner_city','mail_city','mailing_city','owner_mailing_city'],
+  owner_state:     ['owner_state','mail_state','mailing_state','owner_mailing_state'],
+  tax_delinquent:  ['tax_delinquent','tax_delq','delinquent','delinq','taxdelinquent','past_due'],
+  vacant_building: ['vacant_building','vacant','vacancy','is_vacant','vbd','vacantbldg'],
+  city_cut_lot:    ['city_cut_lot','cut_lot','citycut','forestry_cut','on_cut_list','cutlot'],
+  parcel_count:    ['parcel_count','parcelcount','owner_parcel_count','total_parcels'],
+};
+
+function autoDetectUploadCols(csvCols) {
+  const lower = csvCols.map(c => c.toLowerCase());
+  Object.entries(UPLOAD_ALIASES).forEach(([field, aliases]) => {
+    // only auto-detect if user hasn't already mapped this field
+    if (uploadedColMap[field] && csvCols.includes(uploadedColMap[field])) return;
+    for (const alias of aliases) {
+      const idx = lower.indexOf(alias.toLowerCase());
+      if (idx >= 0) { uploadedColMap[field] = csvCols[idx]; break; }
+    }
+  });
+  localStorage.setItem('pri-compiler-upload-colmap', JSON.stringify(uploadedColMap));
+}
+
+function buildUploadColMapUI(csvCols) {
+  const grid = document.getElementById('upload-colmap-grid');
+  const opts = ['(not in file)', ...csvCols].map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  grid.innerHTML = UPLOAD_FIELDS.map(field => `
+    <div style="background:#f8f8f6;border-radius:8px;padding:7px 10px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.55rem;color:#555;letter-spacing:0.5px;margin-bottom:3px">${field}</div>
+      <select id="ucm-${field}" onchange="updateUploadColMap('${field}')"
+        style="width:100%;padding:4px 7px;border:1.5px solid #ddd;border-radius:6px;font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--forest);background:#fafafa">
+        ${opts}
+      </select>
+    </div>`).join('');
+  UPLOAD_FIELDS.forEach(f => {
+    const sel = document.getElementById('ucm-' + f);
+    if (sel) sel.value = uploadedColMap[f] || '(not in file)';
+  });
+  document.getElementById('upload-colmap').style.display = 'block';
+}
+
+function updateUploadColMap(field) {
+  const sel = document.getElementById('ucm-' + field);
+  if (sel) uploadedColMap[field] = sel.value;
+  localStorage.setItem('pri-compiler-upload-colmap', JSON.stringify(uploadedColMap));
+}
+
+// ============================================================
+// CSV PARSE (RFC 4180-ish — handles quoted fields with commas)
+// ============================================================
+function parseCsv(text) {
+  // strip BOM if present
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let cur = '';
+  let row = [];
+  let inQ = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i+1] === '"') { cur += '"'; i++; }
+        else { inQ = false; }
+      } else { cur += c; }
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i+1] === '\n') i++;
+        row.push(cur); cur = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      }
+      else cur += c;
+    }
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  if (!rows.length) return [];
+
+  const headers = rows[0].map(h => String(h).trim());
+  return rows.slice(1).map(r => {
+    const o = {};
+    headers.forEach((h, i) => { o[h] = (r[i] !== undefined ? String(r[i]) : '').trim(); });
+    return o;
+  }).filter(o => Object.values(o).some(v => v));
+}
+
+// ============================================================
+// LIVE FETCH — CSB & VBD via proxy
+// ============================================================
+async function fetchCsbRequests() {
+  if (!proxyUrl) throw new Error('Proxy URL not set');
+  const lookback = parseInt(document.getElementById('csb-lookback').value) || 90;
+  const startDate = new Date(Date.now() - lookback * 86400 * 1000).toISOString().slice(0, 19) + 'Z';
+
+  // CSB API caps at 1000 records per call. We don't paginate on first pass —
+  // forestry-relevant requests in 90d should fit. If it ever maxes out, the
+  // lookback can be shortened.
+  const url = `${proxyUrl}/csb/requests.json?start_date=${encodeURIComponent(startDate)}`;
+  updateSourceStatus('csb', 'fetching…', 'loading');
+  const r = await fetch(url, { signal: AbortSignal.timeout(40000) });
+  if (!r.ok) throw new Error('CSB returned HTTP ' + r.status);
+  const data = await r.json();
+
+  // Open311 returns an array of service_request objects directly,
+  // OR sometimes wraps it. Normalize:
+  const arr = Array.isArray(data) ? data : (data.service_requests || data.requests || []);
+  if (!Array.isArray(arr)) throw new Error('CSB response was not an array');
+
+  // Filter to forestry-relevant types by keyword in service_name (best-effort)
+  const filtered = arr.filter(r => {
+    const t = (r.service_name || '').toLowerCase();
+    return CSB_RELEVANT_KEYWORDS.some(k => t.includes(k));
+  });
+
+  updateSourceStatus('csb', `✓ ${filtered.length} relevant of ${arr.length} total`, 'ok', filtered.length);
+  return filtered;
+}
+
+async function fetchVbd() {
+  if (!proxyUrl) throw new Error('Proxy URL not set');
+  updateSourceStatus('vbd', 'fetching…', 'loading');
+  const r = await fetch(proxyUrl + '/vbd/all', { signal: AbortSignal.timeout(40000) });
+  if (!r.ok) throw new Error('VBD returned HTTP ' + r.status);
+  const data = await r.json();
+  const arr = Array.isArray(data) ? data : (data.results || data.data || []);
+  if (!Array.isArray(arr)) throw new Error('VBD response was not an array');
+  updateSourceStatus('vbd', `✓ loaded`, 'ok', arr.length);
+  return arr;
+}
+
+// ============================================================
+// MERGE LOGIC — combine live data + uploads into unified parcel records
+// ============================================================
+function normalizeAddress(addr) {
+  return String(addr || '')
+    .toUpperCase()
+    .replace(/\./g, '')
+    .replace(/,.*$/, '')             // strip everything after first comma
+    .replace(/\s+/g, ' ')
+    .replace(/\b(STREET|ST)\b/, 'ST')
+    .replace(/\b(AVENUE|AVE)\b/, 'AVE')
+    .replace(/\b(BOULEVARD|BLVD)\b/, 'BLVD')
+    .replace(/\b(ROAD|RD)\b/, 'RD')
+    .replace(/\b(DRIVE|DR)\b/, 'DR')
+    .replace(/\b(PLACE|PL)\b/, 'PL')
+    .replace(/\b(LANE|LN)\b/, 'LN')
+    .replace(/\b(COURT|CT)\b/, 'CT')
+    .trim();
+}
+
+function buildParcelIndex({ csbRequests, vbdRecords, uploadRows }) {
+  // index keyed by normalized address
+  const index = new Map();
+
+  function getOrCreate(addr, ward) {
+    const key = normalizeAddress(addr);
+    if (!key) return null;
+    if (!index.has(key)) {
+      index.set(key, {
+        _key: key,
+        address: addr,
+        ward: ward || '',
+        owner_name: '',
+        owner_city: '',
+        owner_state: '',
+        sources: new Set(),
+        complaints: [],
+        flags: {},          // { tax: true, vacant: true, ... }
+        _raw: {},           // raw rows by source for debugging
+      });
+    }
+    return index.get(key);
+  }
+
+  // CSB requests: tally per address
+  if (csbRequests && csbRequests.length) {
+    csbRequests.forEach(req => {
+      const addr = req.address || req.address_string || '';
+      if (!addr) return;
+      const p = getOrCreate(addr, '');
+      if (!p) return;
+      p.sources.add('csb');
+      p.complaints.push({
+        type: req.service_name || 'Unknown',
+        date: req.requested_datetime || req.updated_datetime || '',
+        status: req.status || '',
+      });
+    });
+  }
+
+  // VBD records: mark each as vacant
+  if (vbdRecords && vbdRecords.length) {
+    vbdRecords.forEach(v => {
+      // VBD field names vary — try several common ones
+      const addr = v.Address || v.address || v.PropertyAddress || v.PROP_ADDRESS || '';
+      const ward = v.Ward || v.ward || '';
+      if (!addr) return;
+      const p = getOrCreate(addr, ward);
+      if (!p) return;
+      p.sources.add('vbd');
+      p.flags.vacant = true;
+      p._raw.vbd = v;
+      // pull ward if we have it from VBD and parcel didn't already
+      if (!p.ward && ward) p.ward = String(ward);
+    });
+  }
+
+  // Uploaded rows: full-fidelity merge — these are the only source for tax,
+  // owner, multi-parcel, cut-lot data.
+  if (uploadRows && uploadRows.length && uploadedColMap.address) {
+    const addrCol = uploadedColMap.address;
+    uploadRows.forEach(row => {
+      const addr = row[addrCol];
+      if (!addr) return;
+      const ward = uploadedColMap.ward ? row[uploadedColMap.ward] : '';
+      const p = getOrCreate(addr, ward);
+      if (!p) return;
+      p.sources.add('upload');
+      p._raw.upload = row;
+
+      // Pull all upload fields (only set if not already set or upload has data)
+      const get = f => uploadedColMap[f] && row[uploadedColMap[f]] ? String(row[uploadedColMap[f]]).trim() : '';
+
+      if (!p.ward && get('ward')) p.ward = get('ward');
+      if (!p.owner_name && get('owner_name')) p.owner_name = get('owner_name');
+      if (!p.owner_city && get('owner_city')) p.owner_city = get('owner_city');
+      if (!p.owner_state && get('owner_state')) p.owner_state = get('owner_state');
+
+      if (isTruthy(get('tax_delinquent')))  p.flags.tax = true;
+      if (isTruthy(get('vacant_building'))) p.flags.vacant = true;
+      if (isTruthy(get('city_cut_lot')))    p.flags.cut = true;
+
+      const pc = parseInt(get('parcel_count')) || 0;
+      if (pc > 1) p.parcel_count = pc;
+    });
+  }
+
+  return [...index.values()];
+}
+
+function isTruthy(v) {
+  if (v === true || v === 1) return true;
+  if (!v && v !== 0) return false;
+  return /^(y|yes|true|1|x|✓)$/i.test(String(v).trim());
+}
+
+// ============================================================
+// SCORING — operates on merged parcels
+// ============================================================
+function scoreParcel(p) {
+  let score = 0;
+  const flagList = [];
+
+  if (document.getElementById('sc-taxdelinq').checked && p.flags.tax) {
+    score += SCORING.tax.points; flagList.push('tax');
+  }
+  if (document.getElementById('sc-vacant').checked && p.flags.vacant) {
+    score += SCORING.vacant.points; flagList.push('vacant');
+  }
+  if (document.getElementById('sc-cutlot').checked && p.flags.cut) {
+    score += SCORING.cut.points; flagList.push('cut');
+  }
+  if (document.getElementById('sc-complaints').checked && p.complaints && p.complaints.length) {
+    const c = p.complaints.length;
+    const pts = Math.min(c, 5);
+    score += pts;
+    flagList.push('complain:' + c);
+  }
+  if (document.getElementById('sc-multiparcel').checked && p.parcel_count > 1) {
+    score += (p.parcel_count - 1) * 2;
+    flagList.push('multi:' + p.parcel_count);
+  }
+  if (document.getElementById('sc-outofcity').checked && p.owner_city) {
+    const oc = p.owner_city.toLowerCase();
+    if (oc !== 'st. louis' && oc !== 'saint louis' && oc !== 'st louis') {
+      score += SCORING.outofcity.points;
+      flagList.push('outofcity');
+    }
+  }
+  return { score, flagList };
+}
+
+// ============================================================
+// GENERATE — orchestrates everything
+// ============================================================
+async function runGenerate() {
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true; btn.textContent = '⏳ Working…';
+  document.getElementById('results-wrap').style.display = 'none';
+  document.getElementById('cluster-wrap').style.display = 'none';
+  showStatus('⏳ Starting…', 'loading');
+
+  const enabledLive = SOURCES.filter(s => s.enabled && !s.disabled && s.type === 'live');
+  const hasUpload   = uploadedRows.length > 0 && uploadedColMap.address;
+
+  if (!enabledLive.length && !hasUpload) {
+    showStatus('❌ No data sources enabled. Toggle a live source on or upload a file.', 'err');
+    btn.disabled = false; btn.textContent = '⚡ GENERATE PRIORITY LIST';
+    return;
+  }
+
+  if (enabledLive.length && !proxyUrl) {
+    showStatus('❌ Live sources need the proxy URL. Set it in Step 1, or disable live sources.', 'err');
+    btn.disabled = false; btn.textContent = '⚡ GENERATE PRIORITY LIST';
+    return;
+  }
+
+  // Reset source statuses
+  enabledLive.forEach(s => updateSourceStatus(s.id, 'queued…', 'loading'));
+
+  const fetchPromises = [];
+  let csbRequests = [], vbdRecords = [];
+
+  enabledLive.forEach(s => {
+    if (s.id === 'csb') {
+      fetchPromises.push(
+        fetchCsbRequests()
+          .then(r => { csbRequests = r; })
+          .catch(e => { updateSourceStatus('csb', '❌ ' + e.message, 'err', 0); })
+      );
+    } else if (s.id === 'vbd') {
+      fetchPromises.push(
+        fetchVbd()
+          .then(r => { vbdRecords = r; })
+          .catch(e => { updateSourceStatus('vbd', '❌ ' + e.message, 'err', 0); })
+      );
+    }
+  });
+
+  showStatus(`⏳ Fetching ${enabledLive.length} live source${enabledLive.length === 1 ? '' : 's'}…`, 'loading');
+  await Promise.all(fetchPromises);
+
+  showStatus('⏳ Merging and scoring…', 'loading');
+
+  // Build unified parcel index
+  const merged = buildParcelIndex({
+    csbRequests,
+    vbdRecords,
+    uploadRows: uploadedRows,
+  });
+
+  if (!merged.length) {
+    showStatus('❌ No parcels found across enabled sources.', 'err');
+    btn.disabled = false; btn.textContent = '⚡ GENERATE PRIORITY LIST';
+    return;
+  }
+
+  // Filter by ward
+  const wards = [...selectedWards];
+  let filtered = merged;
+  if (wards.length > 0) {
+    filtered = merged.filter(p => {
+      const w = parseInt(p.ward) || 0;
+      return wards.includes(w);
+    });
+  }
+
+  // Score, filter by min score
+  const minScore = parseInt(document.getElementById('min-score').value) || 0;
+  scoredParcels = filtered.map(p => {
+    const { score, flagList } = scoreParcel(p);
+    return Object.assign({}, p, {
+      _score: score,
+      _flags: flagList,
+      _sources: [...p.sources],
+    });
+  })
+  .filter(p => p._score >= minScore)
+  .sort((a, b) => b._score - a._score);
+
+  if (!scoredParcels.length) {
+    showStatus(`⚠ No parcels matched scoring threshold (${minScore}). Try lowering it, or check that uploaded fields are mapped correctly.`, 'err');
+    btn.disabled = false; btn.textContent = '⚡ GENERATE PRIORITY LIST';
+    return;
+  }
+
+  // Build ward filter dropdown
+  const wardSet = new Set(scoredParcels.map(p => parseInt(p.ward) || 0).filter(Boolean));
+  const wf = document.getElementById('filter-ward');
+  wf.innerHTML = '<option value="">All</option>';
+  [...wardSet].sort((a,b)=>a-b).forEach(w => {
+    const o = document.createElement('option'); o.value = w; o.textContent = 'Ward ' + w; wf.appendChild(o);
+  });
+
+  displayParcels = [...scoredParcels];
+  currentPage = 1;
+  renderTable();
+  buildClusters();
+  document.getElementById('results-wrap').style.display = 'block';
+  document.getElementById('btn-clear').style.display = '';
+
+  const summary = [
+    `${scoredParcels.length.toLocaleString()} scored from ${merged.length.toLocaleString()} merged`,
+    csbRequests.length ? `${csbRequests.length} 311s` : '',
+    vbdRecords.length ? `${vbdRecords.length} VBD` : '',
+    uploadedRows.length ? `${uploadedRows.length} uploaded` : '',
+    wards.length ? `Wards ${wards.join(',')}` : 'all wards',
+  ].filter(Boolean).join(' · ');
+
+  showStatus(`✅ ${summary}`, 'ok');
+  showToast(`Priority list ready — ${scoredParcels.length} parcels`);
+
+  btn.disabled = false; btn.textContent = '⚡ GENERATE PRIORITY LIST';
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderTable() {
+  const tbody = document.getElementById('result-tbody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = displayParcels.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('result-count-label').textContent = displayParcels.length.toLocaleString() + ' parcels';
+  document.getElementById('result-sub-label').textContent =
+    `showing ${start+1}–${Math.min(start+PAGE_SIZE, displayParcels.length)} · sorted by ${currentSort.col}`;
+
+  tbody.innerHTML = page.map((p, i) => {
+    const rank = start + i + 1;
+    const score = p._score;
+    const scoreClass = score >= 8 ? 'high' : score >= 5 ? 'med' : '';
+    const addr = p.address || '—';
+    const ward = p.ward || '—';
+    const ownerName = p.owner_name || '<span class="no-data">—</span>';
+    const ownerCity = p.owner_city || '';
+    const ownerState = p.owner_state || '';
+    const ownerLoc = [ownerCity, ownerState].filter(Boolean).join(', ');
+
+    const flagHtml = (p._flags || []).map(f => {
+      if (f === 'tax')        return `<span class="flag-chip chip-tax">TAX DELQ</span>`;
+      if (f === 'vacant')     return `<span class="flag-chip chip-vacant">VACANT</span>`;
+      if (f === 'cut')        return `<span class="flag-chip chip-cut">CUT LOT</span>`;
+      if (f === 'outofcity')  return `<span class="flag-chip chip-complain">OUT-OF-CITY</span>`;
+      if (f.startsWith('complain:')) return `<span class="flag-chip chip-complain">311×${f.split(':')[1]}</span>`;
+      if (f.startsWith('multi:'))    return `<span class="flag-chip chip-multi">×${f.split(':')[1]} LOTS</span>`;
+      return '';
+    }).join('');
+
+    const sourceHints = (p._sources || []).map(s => {
+      if (s === 'csb')    return '<span class="flag-chip chip-complain" title="From 311 live data">311</span>';
+      if (s === 'vbd')    return '<span class="flag-chip chip-vacant" title="From VBD live data">VBD</span>';
+      if (s === 'upload') return '<span class="flag-chip" style="background:#f5e8d4;color:#7a5000" title="From your upload">UP</span>';
+      return '';
+    }).join('');
+
+    return `<tr>
+      <td style="color:#999;font-size:0.58rem">${rank}</td>
+      <td><span class="score-badge ${scoreClass}">${score}</span></td>
+      <td>
+        <div class="addr-cell">${esc(addr)}</div>
+        <div class="addr-cell-sub">${sourceHints} · Ward ${esc(ward)}</div>
+      </td>
+      <td style="color:#666;font-size:0.6rem">Ward ${esc(ward)}</td>
+      <td>
+        <div class="owner-cell">${typeof ownerName === 'string' ? esc(ownerName) : ownerName}</div>
+        ${ownerLoc ? `<div style="font-size:0.52rem;color:#aaa">${esc(ownerLoc)}</div>` : ''}
+      </td>
+      <td><div class="flag-row">${flagHtml || '<span class="no-data">no flags</span>'}</div></td>
+    </tr>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = displayParcels.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const pg = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>← PREV</button>`;
+  const range = 2;
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= range) {
+      html += `<button class="page-btn${p===currentPage?' current':''}" onclick="goPage(${p})">${p}</button>`;
+    } else if (Math.abs(p - currentPage) === range + 1) {
+      html += `<span class="page-info">…</span>`;
+    }
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}>NEXT →</button>`;
+  html += `<span class="page-info" style="margin-left:4px">${total.toLocaleString()} total</span>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(displayParcels.length / PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+  document.getElementById('results-wrap').scrollIntoView({ behavior: 'smooth' });
+}
+
+function sortBy(col) {
+  if (col === 'rank') col = 'score';
+  document.getElementById('sort-col').value = col;
+  currentSort.col = col;
+  applySort();
+}
+
+function applySort() {
+  const col = document.getElementById('sort-col').value;
+  currentSort.col = col;
+  displayParcels.sort((a, b) => {
+    if (col === 'score')   return b._score - a._score;
+    if (col === 'ward')    return (parseInt(a.ward)||0) - (parseInt(b.ward)||0);
+    if (col === 'address') return (a.address||'').localeCompare(b.address||'');
+    if (col === 'owner')   return (a.owner_name||'').localeCompare(b.owner_name||'');
+    return 0;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function applyFilter() {
+  const minScore = parseInt(document.getElementById('filter-score').value) || 0;
+  const ward = document.getElementById('filter-ward').value;
+  const search = document.getElementById('filter-search').value.toLowerCase().trim();
+  displayParcels = scoredParcels.filter(p => {
+    if (p._score < minScore) return false;
+    if (ward && (parseInt(p.ward)||0) !== parseInt(ward)) return false;
+    if (search) {
+      const addr = (p.address || '').toLowerCase();
+      const owner = (p.owner_name || '').toLowerCase();
+      if (!addr.includes(search) && !owner.includes(search)) return false;
+    }
+    return true;
+  });
+  currentPage = 1;
+  applySort();
+}
+
+// ============================================================
+// CLUSTERS
+// ============================================================
+function buildClusters() {
+  const ownerMap = {};
+  scoredParcels.forEach(p => {
+    const name = (p.owner_name || '').trim();
+    if (!name) return;
+    if (!ownerMap[name]) ownerMap[name] = { parcels: [], totalScore: 0, city: p.owner_city || '' };
+    ownerMap[name].parcels.push(p);
+    ownerMap[name].totalScore += p._score;
+  });
+  const clusters = Object.entries(ownerMap)
+    .filter(([, v]) => v.parcels.length >= 3)
+    .sort((a, b) => b[1].totalScore - a[1].totalScore)
+    .slice(0, 20);
+
+  const list = document.getElementById('cluster-list');
+  if (!clusters.length) {
+    list.innerHTML = '<div style="font-size:0.62rem;color:rgba(200,230,201,0.5);font-family:Space Mono,monospace">No owner clusters (need 3+ parcels per owner — requires uploaded owner data)</div>';
+    return;
+  }
+  list.innerHTML = clusters.map(([name, data]) => `
+    <div class="cluster-card">
+      <div class="cluster-owner">
+        <div class="cluster-owner-name">${esc(name)}</div>
+        <div class="cluster-owner-sub">${esc(data.city || 'Unknown city')} · ${data.parcels.length} parcels</div>
+      </div>
+      <span class="cluster-count">${data.parcels.length} lots</span>
+      <span class="cluster-score">Σ${data.totalScore}</span>
+    </div>`).join('');
+}
+
+function toggleClusters() {
+  const w = document.getElementById('cluster-wrap');
+  w.style.display = w.style.display === 'none' ? 'block' : 'none';
+}
+
+// ============================================================
+// EXPORTS
+// ============================================================
+function exportCsv() {
+  if (!displayParcels.length) { showToast('No results to export'); return; }
+  const headers = ['Rank','Score','Address','Ward','Owner','Owner City','Owner State',
+    'Tax','Vacant','Cut','Complaints','Parcels','Sources','Flags'];
+  const rows = displayParcels.map((p, i) => [
+    i+1, p._score, p.address || '', p.ward || '', p.owner_name || '',
+    p.owner_city || '', p.owner_state || '',
+    p.flags.tax ? 'Y' : '', p.flags.vacant ? 'Y' : '', p.flags.cut ? 'Y' : '',
+    (p.complaints || []).length, p.parcel_count || '',
+    (p._sources || []).join(';'),
+    (p._flags || []).join('; '),
+  ]);
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `stl-priority-list-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${displayParcels.length} rows ✓`);
+}
+
+function exportJsonForRouter() {
+  if (!displayParcels.length) { showToast('No results to export'); return; }
+  const exported = displayParcels.slice(0, 200).map(p => ({
+    address: p.address || '',
+    fullAddress: p.address ? p.address + ', St. Louis, MO' : '',
+    ward: p.ward || '',
+    score: p._score,
+    flags: p._flags || [],
+    ownerName: p.owner_name || '',
+    ownerCity: p.owner_city || '',
+    delinquent: !!p.flags.tax,
+    hasVacant: !!p.flags.vacant,
+    onCutList: !!p.flags.cut,
+    complaintCount: (p.complaints || []).length,
+    parcelCount: p.parcel_count || 1,
+    sources: p._sources || [],
+  })).filter(x => x.address); // skip rows with no address
+  const json = JSON.stringify(exported, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `stl-priority-router-export-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  URL.revokeObjectURL(url);
+  try {
+    localStorage.setItem('pri-compiler-export', JSON.stringify(exported.slice(0, 50)));
+    showToast(`Exported ${exported.length} rows + pushed top 50 to router app ✓`);
+  } catch(e) { showToast(`Exported ${exported.length} rows ✓`); }
+}
+
+function clearResults() {
+  scoredParcels = []; displayParcels = [];
+  document.getElementById('results-wrap').style.display = 'none';
+  document.getElementById('cluster-wrap').style.display = 'none';
+  document.getElementById('btn-clear').style.display = 'none';
+  document.getElementById('status-bar').style.display = 'none';
+  document.getElementById('result-tbody').innerHTML = '';
+  showToast('Results cleared');
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function showStatus(msg, type) {
+  const bar = document.getElementById('status-bar');
+  bar.style.display = 'block';
+  bar.className = 'status-' + (type === 'err' ? 'err-bar' : type === 'ok' ? 'ok-bar' : 'loading-bar');
+  bar.textContent = msg;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
